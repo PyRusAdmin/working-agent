@@ -162,6 +162,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-/Изм ШР на 01.04.2026г..xlsx
-/Март 2026.xlsx
+/input/Изм_ШР_на_01_04_2026г_.xlsx
+/input/Март_2026.xlsx
 /ШР_с_сотрудниками_апрель_2026.xlsx
+/.idea/
+/input/

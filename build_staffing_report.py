@@ -20,6 +20,7 @@ import pandas as pd
 import openpyxl
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from loguru import logger
 
 # ─────────────────────────────────────────────
 #  Константы — цвета (ARGB без #)
@@ -510,7 +511,7 @@ def main():
 
     for p in (args.sr, args.payroll):
         if not Path(p).exists():
-            print(f"[ОШИБКА] Файл не найден: {p}", file=sys.stderr)
+            logger.error(f"[ОШИБКА] Файл не найден: {p}", file=sys.stderr)
             sys.exit(1)
 
     build_report(args.sr, args.payroll, args.out)
