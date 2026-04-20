@@ -494,12 +494,12 @@ def main():
     )
     parser.add_argument(
         "--sr",
-        default="Изм_ШР_на_01_04_2026г_.xlsx",
+        default="input/Изм_ШР_на_01_04_2026г_.xlsx",
         help="Путь к файлу штатного расписания (.xlsx)",
     )
     parser.add_argument(
         "--payroll",
-        default="Март_2026.xlsx",
+        default="input/Март_2026.xlsx",
         help="Путь к файлу зарплатной ведомости (.xlsx)",
     )
     parser.add_argument(
