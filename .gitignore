@@ -169,3 +169,5 @@ cython_debug/
 /input/
 /ШР_с_сотрудниками.xlsx
 /Штатная расстановка.xlsx
+/output
+/.vscode

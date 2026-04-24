@@ -10,7 +10,6 @@ build_staffing_report.py
 Зависимости:
     pip install pandas openpyxl
 """
-
 import argparse
 import math
 import sys
