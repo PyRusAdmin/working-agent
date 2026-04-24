@@ -22,6 +22,9 @@ from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from loguru import logger
 
+# Папка для хранение логов
+logger.add("log/log.log")
+
 # ─────────────────────────────────────────────
 #  Константы — цвета (ARGB без #)
 # ─────────────────────────────────────────────
