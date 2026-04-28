@@ -87,7 +87,41 @@ def puts_vacancies_in_the_staffing_table():
     wb.save(output_path)
     logger.info("Изменения сохранены в файл")
 
+
+
+def clears_professions_from_the_names_of_departments():
+    """Очищает названия профессий от названий подразделений"""
+    
+    logger.warning("Очищает названия профессий от названий подразделений")
+
+    column_letter = "A"
+    
+    wb = openpyxl.load_workbook(output_path)
+    ws = wb.active
+    
+    for cell in ws[column_letter]:
+        if cell.value == "Аппаратчик химводоочистки 2 разряд /ПРОЛЕТАРСКИЙ РАЙОН ТЕПЛОВЫХ СЕТЕЙ/":
+            
+            logger.info(f"Подразделение в столбце {column_letter}, строка {cell.row} найдено")
+
+            # Если это объединённая ячейка — разъединяем
+            if isinstance(cell, MergedCell):
+                for merged_range in ws.merged_cells.ranges:
+                    if (merged_range.min_row <= cell.row <= merged_range.max_row and
+                        merged_range.min_col <= cell.column <= merged_range.max_col):
+                        ws.unmerge_cells(str(merged_range))
+                        logger.debug(f"  Разъединил: {merged_range}")
+                        break
+                    
+            # Заменяем запятую на "ВАКАНСИЯ" в ячейке A
+            ws.cell(row=cell.row, column=1, value="Аппаратчик химводоочистки 2 разряд").font = Font(color="FF0000")
+
+
+
 if __name__ == '__main__':
     removes_grouping() # снимает группировку со всех строк
     removes_merging_of_cells() # снимает объединение ячеек со всех строк
     puts_vacancies_in_the_staffing_table() # считываем все строки 
+    
+    clears_professions_from_the_names_of_departments()
+    
