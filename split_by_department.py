@@ -7,14 +7,14 @@
 Если путь не указан, ищет файл your_file_modified.xlsx в текущей папке.
 Результат: папка output_departments/ с подпапками по каждому подразделению.
 """
-import sys
+
+import copy
 import os
 import re
+import sys
+
 import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
-import copy
 
 # ─────────────────────────── Настройки ───────────────────────────
 HEADER_ROWS = 9          # строки 0..8 — шапка отчёта (индексы pandas)
@@ -67,10 +67,14 @@ def find_department_boundaries(df: pd.DataFrame):
     return boundaries
 
 
-def copy_row_style(src_row, dst_row):
-    """Копирует стили ячеек из src_row в dst_row (openpyxl rows)."""
-    for src_cell, dst_cell in zip(src_row, dst_row):
+def copy_row_with_style(src_ws, src_row_num, dst_ws, dst_row_num, max_col):
+    """Копирует строку со всеми ячейками и стилями."""
+    for col_num in range(1, max_col + 1):
+        src_cell = src_ws.cell(src_row_num, col_num)
+        dst_cell = dst_ws.cell(dst_row_num, col_num)
+        
         dst_cell.value = src_cell.value
+        
         if src_cell.has_style:
             dst_cell.font      = copy.copy(src_cell.font)
             dst_cell.fill      = copy.copy(src_cell.fill)
@@ -96,11 +100,10 @@ def save_department_xlsx(src_wb, src_ws, row_indices: list, dept_name: str, out_
         ws_new.column_dimensions[col_letter].width = col_dim.width
 
     # Копируем строки
+    max_col = src_ws.max_column
     dst_row_num = 1
     for src_row_num in row_indices:
-        src_row = src_ws[src_row_num]
-        dst_row = ws_new[dst_row_num]
-        copy_row_style(src_row, dst_row)
+        copy_row_with_style(src_ws, src_row_num, ws_new, dst_row_num, max_col)
         dst_row_num += 1
 
     wb_new.save(out_path)

@@ -4,7 +4,7 @@ from openpyxl.styles import Font
 from openpyxl.utils import range_boundaries
 from openpyxl.cell.cell import MergedCell
 
-file_path = 'input/Штатная_расстановка.xlsx'
+file_path = 'input/28.04.2026.xlsx'
 output_path = 'output/your_file_modified.xlsx'
 
 
@@ -26,14 +26,15 @@ def removes_grouping():
 
     wb.save(output_path)
     logger.info("Группировка со всех строк успешно снята.")
-   
+
+
 def removes_merging_of_cells():
-    """Снимает объединение ячеек со всех строк"""            
-    
+    """Снимает объединение ячеек со всех строк"""
+
     logger.warning("Снимает объединение ячеек со всех строк")
-    
+
     column_letter = "G"
-    
+
     wb = openpyxl.load_workbook(output_path)
     ws = wb.active
 
@@ -57,71 +58,67 @@ def removes_merging_of_cells():
     logger.info(f"Объединённые ячейки в столбце {column_letter} разъединены. Файл сохранён как {output_path}")
 
 
-
 def puts_vacancies_in_the_staffing_table():
     """Ставит обозначение о вакансии в штатной расстановке"""
 
     logger.warning("Ставит обозначение о вакансии в штатной расстановке")
-    
+
     column_letter = "A"
-    
+
     wb = openpyxl.load_workbook(output_path)
     ws = wb.active
-    
+
     for cell in ws[column_letter]:
         if cell.value == ",":
             logger.info(f"Вакансия в столбце {column_letter}, строка {cell.row} найдена")
-            
+
             # Если это объединённая ячейка — разъединяем
             if isinstance(cell, MergedCell):
                 for merged_range in ws.merged_cells.ranges:
                     if (merged_range.min_row <= cell.row <= merged_range.max_row and
-                        merged_range.min_col <= cell.column <= merged_range.max_col):
+                            merged_range.min_col <= cell.column <= merged_range.max_col):
                         ws.unmerge_cells(str(merged_range))
                         logger.debug(f"  Разъединил: {merged_range}")
                         break
-            
+
             # Заменяем запятую на "ВАКАНСИЯ" в ячейке A
             ws.cell(row=cell.row, column=1, value="ВАКАНСИЯ").font = Font(color="FF0000")
-    
+
     wb.save(output_path)
     logger.info("Изменения сохранены в файл")
 
 
-
 def clears_professions_from_the_names_of_departments():
     """Очищает названия профессий от названий подразделений"""
-    
+
     logger.warning("Очищает названия профессий от названий подразделений")
 
     column_letter = "A"
-    
+
     wb = openpyxl.load_workbook(output_path)
     ws = wb.active
-    
+
     for cell in ws[column_letter]:
         if cell.value == "Аппаратчик химводоочистки 2 разряд /ПРОЛЕТАРСКИЙ РАЙОН ТЕПЛОВЫХ СЕТЕЙ/":
-            
+
             logger.info(f"Подразделение в столбце {column_letter}, строка {cell.row} найдено")
 
             # Если это объединённая ячейка — разъединяем
             if isinstance(cell, MergedCell):
                 for merged_range in ws.merged_cells.ranges:
                     if (merged_range.min_row <= cell.row <= merged_range.max_row and
-                        merged_range.min_col <= cell.column <= merged_range.max_col):
+                            merged_range.min_col <= cell.column <= merged_range.max_col):
                         ws.unmerge_cells(str(merged_range))
                         logger.debug(f"  Разъединил: {merged_range}")
                         break
-                    
+
             # Заменяем запятую на "ВАКАНСИЯ" в ячейке A
             ws.cell(row=cell.row, column=1, value="Аппаратчик химводоочистки 2 разряд").font = Font(color="FF0000")
 
 
-
 if __name__ == '__main__':
-    removes_grouping() # снимает группировку со всех строк
-    removes_merging_of_cells() # снимает объединение ячеек со всех строк
-    puts_vacancies_in_the_staffing_table() # считываем все строки 
-    
+    removes_grouping()  # снимает группировку со всех строк
+    removes_merging_of_cells()  # снимает объединение ячеек со всех строк
+    puts_vacancies_in_the_staffing_table()  # считываем все строки
+
     clears_professions_from_the_names_of_departments()
-    
