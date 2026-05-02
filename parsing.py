@@ -3,10 +3,14 @@ from openpyxl import Workbook, load_workbook
 input_file = "input/История изменений оплаты труда.xlsx"
 target_file = "input/28.04.2026 (2).xlsx"
 output_file = "output/28.04.2026 (2)_updated.xlsx"
-missed_report_file = "output/missed_intensity_report.xlsx"
+missed_intensity_report_file = "output/missed_intensity_report.xlsx"
+missed_disinfection_report_file = "output/missed_disinfection_report.xlsx"
 
 
 def parsing_file(input_file):
+    """
+    Парсинг файла на наличие строк с группировкой
+    """
     wb = load_workbook(input_file, data_only=True, read_only=False)
     ws = wb["Лист_1"]
 
@@ -34,6 +38,13 @@ def parsing_file(input_file):
 
 
 def parsing_start_row_8(input_file, start_row, end_row):
+    """
+    Парсинг файла в определенном диапазоне строк
+    :param input_file:
+    :param start_row:
+    :param end_row:
+    :return:
+    """
     wb = load_workbook(input_file, data_only=True, read_only=False)
     ws = wb["Лист_1"]
 
@@ -59,7 +70,15 @@ def normalize_name(value):
     return " ".join(name.split()).lower()
 
 
-def update_target_file(data_file, target_file, output_file=None):
+def update_target_file(column_1, column_2, data_file, target_file, output_file=None):
+    """
+    За использование в работе дезинфицирующих средств, а также работникам, занятым уборкой туалетов
+    :param data_file:
+    :param target_file:
+    :param output_file:
+    :param column_1: Строка для записи процента
+    :param column_2: Строка для записи суммы
+    """
     wb = load_workbook(target_file)
     ws = wb.active
 
@@ -73,16 +92,14 @@ def update_target_file(data_file, target_file, output_file=None):
         normalized_name = normalize_name(full_name)
 
         if normalized_name in data_by_name and normalized_name not in updated_names:
-            value_l, value_m = data_by_name[normalized_name]
-            ws.cell(row_num, 12).value = value_l
-            ws.cell(row_num, 13).value = value_m
+            value_r, value_s = data_by_name[normalized_name]
+            ws.cell(row_num, column_1).value = value_r
+            ws.cell(row_num, column_2).value = value_s
             updated_rows.append(row_num)
             updated_names.add(normalized_name)
 
     save_path = output_file or target_file
     wb.save(save_path)
-
-    return updated_rows
 
 
 def aggregate_data_by_name(data_file):
@@ -241,33 +258,36 @@ if __name__ == "__main__":
     for group in groups:
         print(group["name"], group["start_row"], len(group["rows"]))
 
-    data_file = parsing_start_row_8(input_file=input_file, start_row=1074, end_row=2060)
-    report = make_match_report(
-        data_file=data_file,
+    """За интенсивность труда работников"""
+
+    # Парсим файл с данными (Имя, Процент, Сумма)
+    data_file_1 = parsing_start_row_8(input_file=input_file, start_row=1074, end_row=2059)
+    report_1 = make_match_report(
+        data_file=data_file_1,
         target_file=target_file,
-        report_file=missed_report_file,
+        report_file=missed_intensity_report_file,
     )
-    updated_rows = update_target_file(
-        data_file=data_file,
+    update_target_file(
+        column_1=12,
+        column_2=13,
+        data_file=data_file_1,
         target_file=target_file,
         output_file=output_file,
     )
 
-    print(f"Обновлено строк: {len(updated_rows)}")
-    print(f"Первые обновленные строки: {updated_rows[:20]}")
-    print(f"Файл сохранен: {output_file}")
-    print(f"Сумма источника: {report['source_total']:.2f}")
-    print(f"Сумма найденных в цели: {report['matched_total']:.2f}")
-    print(f"Сумма не найденных в цели: {report['missed_total']:.2f}")
-    print(
-        "Сумма найденных после объединения дублей: "
-        f"{report['aggregated_matched_total']:.2f}"
+    """За использование в работе дезинфицирующих средств, а также работникам, занятым уборкой туалетов"""
+
+    # Парсим файл с данными (Имя, Процент, Сумма)
+    data_file = parsing_start_row_8(input_file=input_file, start_row=2075, end_row=2181)
+    report_2 = make_match_report(
+        data_file=data_file,
+        target_file=target_file,
+        report_file=missed_disinfection_report_file,
     )
-    print(
-        "Сумма не найденных после объединения дублей: "
-        f"{report['aggregated_missed_total']:.2f}"
+    update_target_file(
+        column_1=18,
+        column_2=19,
+        data_file=data_file,
+        target_file=output_file,
+        output_file=output_file,
     )
-    print(f"Не найдено строк источника: {report['missed_count']}")
-    print(f"Дублей ФИО в источнике: {report['duplicate_source_count']}")
-    print(f"Дублей ФИО в цели: {report['duplicate_target_count']}")
-    print(f"Отчет по пропущенным: {missed_report_file}")
