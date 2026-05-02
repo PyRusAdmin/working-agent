@@ -5,6 +5,7 @@ target_file = "input/28.04.2026 (2).xlsx"
 output_file = "output/28.04.2026 (2)_updated.xlsx"
 missed_intensity_report_file = "output/missed_intensity_report.xlsx"
 missed_disinfection_report_file = "output/missed_disinfection_report.xlsx"
+missed_absence_salary_report_file = "output/missed_absence_salary_report.xlsx"
 
 
 def parsing_file(input_file):
@@ -60,6 +61,79 @@ def parsing_start_row_8(input_file, start_row, end_row):
             data_file.append([row_num, value_a, value_b, value_c])
 
     return data_file
+
+
+# def parsing_start_row_9(input_file, start_row, end_row):
+#     """
+#     Парсинг файла в определенном диапазоне строк
+#     :param input_file:
+#     :param start_row:
+#     :param end_row:
+#     :return:
+#     """
+#     wb = load_workbook(input_file, data_only=True, read_only=False)
+#     ws = wb["Лист_1"]
+#
+#     data_file = []
+#
+#     for row_num in range(start_row, end_row + 1):
+#         level = ws.row_dimensions[row_num].outlineLevel
+#         value_a = ws.cell(row_num, 1).value
+#         value_b = ws.cell(row_num, 16).value
+#         value_c = ws.cell(row_num, 19).value
+#
+#         if level == 2 and value_a:
+#             data_file.append([row_num, value_a, value_b, value_c])
+#
+#     return data_file
+
+
+def parsing_start_row_9(input_file, start_row, end_row):
+    """
+    Парсинг блока, где у одного сотрудника две строки:
+    - "Оклад по должности совмещения" -> оклад
+    - "Размер доплаты за совмещение" -> процент
+    """
+    wb = load_workbook(input_file, data_only=True, read_only=False)
+    ws = wb["Лист_1"]
+
+    data_by_name = {}
+
+    for row_num in range(start_row, end_row + 1):
+        level = ws.row_dimensions[row_num].outlineLevel
+        full_name = ws.cell(row_num, 1).value
+        accrual_type = ws.cell(row_num, 15).value
+        value = ws.cell(row_num, 16).value
+
+        if level != 2 or not full_name:
+            continue
+
+        normalized_name = normalize_name(full_name)
+        if not normalized_name:
+            continue
+
+        if normalized_name not in data_by_name:
+            data_by_name[normalized_name] = {
+                "row_num": row_num,
+                "full_name": full_name,
+                "percent": 0,
+                "salary": 0,
+            }
+
+        if accrual_type == "Размер доплаты за совмещение":
+            data_by_name[normalized_name]["percent"] += to_number(value)
+        elif accrual_type == "Оклад по должности совмещения":
+            data_by_name[normalized_name]["salary"] += to_number(value)
+
+    return [
+        [
+            item["row_num"],
+            item["full_name"],
+            item["percent"],
+            item["salary"],
+        ]
+        for item in data_by_name.values()
+    ]
 
 
 def normalize_name(value):
@@ -278,16 +352,52 @@ if __name__ == "__main__":
     """За использование в работе дезинфицирующих средств, а также работникам, занятым уборкой туалетов"""
 
     # Парсим файл с данными (Имя, Процент, Сумма)
-    data_file = parsing_start_row_8(input_file=input_file, start_row=2075, end_row=2181)
+    data_file_2 = parsing_start_row_8(input_file=input_file, start_row=2075, end_row=2181)
     report_2 = make_match_report(
-        data_file=data_file,
+        data_file=data_file_2,
         target_file=target_file,
         report_file=missed_disinfection_report_file,
     )
     update_target_file(
-        column_1=18,
-        column_2=19,
-        data_file=data_file,
+        column_1=19,
+        column_2=20,
+        data_file=data_file_2,
+        target_file=output_file,
+        output_file=output_file,
+    )
+
+    """Доплата за выполнение обязанностей временно отсутствующего работника от оклада"""
+
+    # Парсим файл с данными (Имя, Процент, Сумма)
+    data_file_3 = parsing_start_row_9(input_file=input_file, start_row=3393, end_row=3505)
+    report_3 = make_match_report(
+        data_file=data_file_3,
+        target_file=target_file,
+        report_file=missed_absence_salary_report_file,
+    )
+    update_target_file(
+        column_1=14,
+        column_2=15,
+        data_file=data_file_3,
+        target_file=output_file,
+        output_file=output_file,
+    )
+
+    """
+    Доплата за выполнение обязанностей временно отсутствующего работника от ЧТС
+    """
+
+    # Парсим файл с данными (Имя, Процент, Сумма)
+    data_file_3 = parsing_start_row_9(input_file=input_file, start_row=3094, end_row=3392)
+    report_4 = make_match_report(
+        data_file=data_file_3,
+        target_file=target_file,
+        report_file=missed_absence_salary_report_file,
+    )
+    update_target_file(
+        column_1=14,
+        column_2=15,
+        data_file=data_file_3,
         target_file=output_file,
         output_file=output_file,
     )
