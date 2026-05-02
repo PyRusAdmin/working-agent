@@ -1,8 +1,9 @@
-from openpyxl import load_workbook
+from openpyxl import Workbook, load_workbook
 
 input_file = "input/История изменений оплаты труда.xlsx"
 target_file = "input/28.04.2026 (2).xlsx"
 output_file = "output/28.04.2026 (2)_updated.xlsx"
+missed_report_file = "output/missed_intensity_report.xlsx"
 
 
 def parsing_file(input_file):
@@ -39,12 +40,13 @@ def parsing_start_row_8(input_file, start_row, end_row):
     data_file = []
 
     for row_num in range(start_row, end_row + 1):
+        level = ws.row_dimensions[row_num].outlineLevel
         value_a = ws.cell(row_num, 1).value
         value_b = ws.cell(row_num, 16).value
         value_c = ws.cell(row_num, 19).value
 
-        if value_a:
-            data_file.append([value_a, value_b, value_c])
+        if level == 2 and value_a:
+            data_file.append([row_num, value_a, value_b, value_c])
 
     return data_file
 
@@ -62,7 +64,7 @@ def update_target_file(data_file, target_file, output_file=None):
     ws = wb.active
 
     data_by_name = {}
-    for full_name, value_l, value_m in data_file:
+    for _, full_name, value_l, value_m in data_file:
         normalized_name = normalize_name(full_name)
         if normalized_name:
             data_by_name[normalized_name] = [value_l, value_m]
@@ -85,6 +87,125 @@ def update_target_file(data_file, target_file, output_file=None):
     return updated_rows
 
 
+def to_number(value):
+    if isinstance(value, int | float):
+        return value
+
+    if value is None:
+        return 0
+
+    try:
+        return float(str(value).replace(" ", "").replace(",", "."))
+    except ValueError:
+        return 0
+
+
+def make_match_report(data_file, target_file, report_file):
+    wb = load_workbook(target_file, read_only=True, data_only=True)
+    ws = wb.active
+
+    target_names = {}
+    for row_num, row in enumerate(ws.iter_rows(values_only=True), start=1):
+        normalized_name = normalize_name(row[0])
+        if normalized_name:
+            target_names.setdefault(normalized_name, []).append(row_num)
+
+    source_names = {}
+    for source_row, full_name, value_l, value_m in data_file:
+        normalized_name = normalize_name(full_name)
+        if normalized_name:
+            source_names.setdefault(normalized_name, []).append(
+                [source_row, full_name, value_l, value_m]
+            )
+
+    missed = []
+    matched_total = 0
+    missed_total = 0
+    source_total = 0
+
+    for source_row, full_name, value_l, value_m in data_file:
+        amount = to_number(value_m)
+        source_total += amount
+        normalized_name = normalize_name(full_name)
+
+        if normalized_name in target_names:
+            matched_total += amount
+        else:
+            missed_total += amount
+            missed.append([source_row, full_name, value_l, value_m])
+
+    duplicate_source_names = []
+    for rows in source_names.values():
+        if len(rows) > 1:
+            total_amount = sum(to_number(row[3]) for row in rows)
+            last_amount = to_number(rows[-1][3])
+            source_rows = ", ".join(str(row[0]) for row in rows)
+            duplicate_source_names.append(
+                [
+                    rows[0][1],
+                    len(rows),
+                    total_amount,
+                    last_amount,
+                    total_amount - last_amount,
+                    source_rows,
+                ]
+            )
+    duplicate_target_names = [
+        [name, len(rows), ", ".join(str(row) for row in rows[:20])]
+        for name, rows in target_names.items()
+        if len(rows) > 1
+    ]
+
+    report_wb = Workbook()
+    ws_missed = report_wb.active
+    ws_missed.title = "Не найдены"
+    ws_missed.append(["Строка источника", "ФИО", "Процент", "Сумма"])
+    for row in missed:
+        ws_missed.append(row)
+
+    ws_source_duplicates = report_wb.create_sheet("Дубли в источнике")
+    ws_source_duplicates.append(
+        [
+            "ФИО",
+            "Количество",
+            "Сумма всех строк",
+            "Последняя сумма",
+            "Потеря при перезаписи",
+            "Строки источника",
+        ]
+    )
+    for row in duplicate_source_names:
+        ws_source_duplicates.append(row)
+
+    ws_target_duplicates = report_wb.create_sheet("Дубли в цели")
+    ws_target_duplicates.append(["ФИО нормализованное", "Количество", "Первые строки"])
+    for row in duplicate_target_names:
+        ws_target_duplicates.append(row)
+
+    ws_summary = report_wb.create_sheet("Итог")
+    ws_summary.append(["Показатель", "Значение"])
+    ws_summary.append(["Строк в источнике", len(data_file)])
+    ws_summary.append(["Уникальных ФИО в источнике", len(source_names)])
+    ws_summary.append(["Уникальных ФИО в цели", len(target_names)])
+    ws_summary.append(["Сумма источника", source_total])
+    ws_summary.append(["Сумма найденных в цели", matched_total])
+    ws_summary.append(["Сумма не найденных в цели", missed_total])
+    ws_summary.append(["Не найдено строк источника", len(missed)])
+    ws_summary.append(["ФИО с дублями в источнике", len(duplicate_source_names)])
+    ws_summary.append(["ФИО с дублями в цели", len(duplicate_target_names)])
+
+    report_wb.save(report_file)
+
+    return {
+        "source_total": source_total,
+        "matched_total": matched_total,
+        "missed_total": missed_total,
+        "missed_count": len(missed),
+        "duplicate_source_count": len(duplicate_source_names),
+        "duplicate_target_count": len(duplicate_target_names),
+    }
+
+
 if __name__ == "__main__":
     # Определяем группы для парсинга в файле
     groups = parsing_file(input_file)
@@ -93,6 +214,11 @@ if __name__ == "__main__":
         print(group["name"], group["start_row"], len(group["rows"]))
 
     data_file = parsing_start_row_8(input_file=input_file, start_row=1074, end_row=2060)
+    report = make_match_report(
+        data_file=data_file,
+        target_file=target_file,
+        report_file=missed_report_file,
+    )
     updated_rows = update_target_file(
         data_file=data_file,
         target_file=target_file,
@@ -102,3 +228,10 @@ if __name__ == "__main__":
     print(f"Обновлено строк: {len(updated_rows)}")
     print(f"Первые обновленные строки: {updated_rows[:20]}")
     print(f"Файл сохранен: {output_file}")
+    print(f"Сумма источника: {report['source_total']:.2f}")
+    print(f"Сумма найденных в цели: {report['matched_total']:.2f}")
+    print(f"Сумма не найденных в цели: {report['missed_total']:.2f}")
+    print(f"Не найдено строк источника: {report['missed_count']}")
+    print(f"Дублей ФИО в источнике: {report['duplicate_source_count']}")
+    print(f"Дублей ФИО в цели: {report['duplicate_target_count']}")
+    print(f"Отчет по пропущенным: {missed_report_file}")
