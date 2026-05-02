@@ -401,3 +401,39 @@ if __name__ == "__main__":
         target_file=output_file,
         output_file=output_file,
     )
+
+    """
+    Доплата за совмещение профессий (должностей) от оклада
+    """
+
+    # Парсим файл с данными (Имя, Процент, Сумма)
+    data_file_3 = parsing_start_row_9(input_file=input_file, start_row=2638, end_row=3008)
+    report_5 = make_match_report(
+        data_file=data_file_3,
+        target_file=target_file,
+        report_file=missed_absence_salary_report_file,
+    )
+    update_target_file(
+        column_1=25,
+        column_2=26,
+        data_file=data_file_3,
+        target_file=output_file,
+        output_file=output_file,
+    )
+
+    """Надбавка за высокое профессиональное мастерство"""
+
+    # Парсим файл с данными (Имя, Процент, Сумма)
+    data_file_1 = parsing_start_row_8(input_file=input_file, start_row=2060, end_row=2071)
+    make_match_report(
+        data_file=data_file_1,
+        target_file=target_file,
+        report_file=missed_intensity_report_file,
+    )
+    update_target_file(
+        column_1=17,
+        column_2=18,
+        data_file=data_file_1,
+        target_file=target_file,
+        output_file=output_file,
+    )
