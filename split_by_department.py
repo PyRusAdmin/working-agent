@@ -7,7 +7,6 @@
 Если путь не указан, ищет файл your_file_modified.xlsx в текущей папке.
 Результат: папка output_departments/ с подпапками по каждому подразделению.
 """
-
 import copy
 import os
 import re
@@ -17,15 +16,15 @@ import pandas as pd
 from openpyxl import load_workbook
 
 # ─────────────────────────── Настройки ───────────────────────────
-HEADER_ROWS = 9          # строки 0..8 — шапка отчёта (индексы pandas)
-OUTPUT_DIR  = "output_departments"
+HEADER_ROWS = 9  # строки 0..8 — шапка отчёта (индексы pandas)
+OUTPUT_DIR = "output_departments"
 
 
 def sanitize_name(name: str) -> str:
     """Убирает из имени символы, недопустимые в имени папки/файла."""
     name = name.strip()
     name = re.sub(r'[\\/:*?"<>|]', '_', name)
-    return name[:80]   # ограничение длины
+    return name[:80]  # ограничение длины
 
 
 def find_department_boundaries(df: pd.DataFrame):
@@ -72,13 +71,13 @@ def copy_row_with_style(src_ws, src_row_num, dst_ws, dst_row_num, max_col):
     for col_num in range(1, max_col + 1):
         src_cell = src_ws.cell(src_row_num, col_num)
         dst_cell = dst_ws.cell(dst_row_num, col_num)
-        
+
         dst_cell.value = src_cell.value
-        
+
         if src_cell.has_style:
-            dst_cell.font      = copy.copy(src_cell.font)
-            dst_cell.fill      = copy.copy(src_cell.fill)
-            dst_cell.border    = copy.copy(src_cell.border)
+            dst_cell.font = copy.copy(src_cell.font)
+            dst_cell.fill = copy.copy(src_cell.fill)
+            dst_cell.border = copy.copy(src_cell.border)
             dst_cell.alignment = copy.copy(src_cell.alignment)
             dst_cell.number_format = src_cell.number_format
 
@@ -144,7 +143,7 @@ def main():
 
         # Конец секции = начало следующего подразделения или конец файла
         if idx + 1 < len(boundaries):
-            pd_end = boundaries[idx + 1][0]   # не включая
+            pd_end = boundaries[idx + 1][0]  # не включая
         else:
             pd_end = total_rows
 
@@ -172,7 +171,7 @@ def main():
         save_department_xlsx(wb_src, ws_src, row_indices, dept_name, out_file)
 
         rows_in_section = len(dept_openpyxl)
-        print(f"  [{idx+1:02d}/{len(boundaries)}] {dept_name[:55]:<55} "
+        print(f"  [{idx + 1:02d}/{len(boundaries)}] {dept_name[:55]:<55} "
               f"строк: {rows_in_section:4d}  вакансий: {vacancy_count}")
 
     print(f"\nГотово! Файлы сохранены в папку: {OUTPUT_DIR}/")

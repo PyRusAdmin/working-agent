@@ -10,7 +10,6 @@ build_staffing_report.py
 Зависимости:
     pip install pandas openpyxl
 """
-
 import argparse
 import math
 import sys
@@ -50,7 +49,7 @@ def _fill(hex_color: str) -> PatternFill:
 
 
 def _font(
-    bold: bool = False, sz: int = 10, color: str = "FF000000", white: bool = False
+        bold: bool = False, sz: int = 10, color: str = "FF000000", white: bool = False
 ) -> Font:
     return Font(
         name="Arial",
@@ -180,15 +179,15 @@ def load_payroll(path: str) -> pd.DataFrame:
     raw = pd.read_excel(path, sheet_name=0, header=3)
     raw = raw.iloc[2:].reset_index(drop=True)  # строки с колонками-номерами пропускаем
     raw.columns = [
-        "№",
-        "Категория",
-        "Подразд1",
-        "Подразд2",
-        "Подразд3",
-        "Профессия",
-        "ТабН",
-        "ФИО",
-    ] + [f"c{i}" for i in range(raw.shape[1] - 8)]
+                      "№",
+                      "Категория",
+                      "Подразд1",
+                      "Подразд2",
+                      "Подразд3",
+                      "Профессия",
+                      "ТабН",
+                      "ФИО",
+                  ] + [f"c{i}" for i in range(raw.shape[1] - 8)]
 
     emp = raw[raw["ФИО"].notna() & (raw["ФИО"].astype(str).str.strip() != "nan")].copy()
     emp = emp[~emp["ТабН"].astype(str).str.endswith("С")].copy()
@@ -226,9 +225,9 @@ def match(sr_df: pd.DataFrame, emp: pd.DataFrame):
         subdept = pos["Подотдел"]
 
         mask = (
-            (emp["Подразд3"] == dept)
-            & (emp["Профессия"] == job)
-            & (~emp.index.isin(used_idx))
+                (emp["Подразд3"] == dept)
+                & (emp["Профессия"] == job)
+                & (~emp.index.isin(used_idx))
         )
         matched = emp[mask]
         slots = math.ceil(units)
@@ -432,7 +431,7 @@ def _write_summary_sheet(ws, out_df: pd.DataFrame, sr_df: pd.DataFrame):
     total_v = (out_df["Статус"] == "Вакансия").sum()
     total_p = round(total_z / total_u * 100, 1) if total_u else 0
     for ci, val in enumerate(
-        ["ИТОГО", round(total_u, 2), total_z, total_v, f"{total_p} %"], 1
+            ["ИТОГО", round(total_u, 2), total_z, total_v, f"{total_p} %"], 1
     ):
         c = ws.cell(row=rn, column=ci, value=val)
         _style(
@@ -482,7 +481,7 @@ def _write_unmatched_sheet(ws, unmatched: pd.DataFrame):
     for _, e in unmatched.sort_values(["Подразд3", "Профессия"]).iterrows():
         ws.row_dimensions[rn].height = 16
         for ci, val in enumerate(
-            [e["Подразд3"], e["Профессия"], str(e["ТабН"]), e["ФИО"]], 1
+                [e["Подразд3"], e["Профессия"], str(e["ТабН"]), e["ФИО"]], 1
         ):
             c = ws.cell(row=rn, column=ci, value=val)
             _style(
