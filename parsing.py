@@ -37,11 +37,19 @@ def parsing_start_row_8(input_file, start_row, end_row):
     wb = load_workbook(input_file, data_only=True, read_only=False)
     ws = wb["Лист_1"]
 
+    data_file = []
+
     for row_num in range(start_row, end_row):
         value_a = ws.cell(row_num, 1).value
         print(value_a)
         value_b = ws.cell(row_num, 16).value
         print(value_b)
+        value_c = ws.cell(row_num, 19).value
+        print(value_c)
+
+        data_file.append([value_a, value_b, value_c])
+
+    return data_file
 
 
 if __name__ == "__main__":
@@ -51,4 +59,6 @@ if __name__ == "__main__":
     for group in groups:
         print(group["name"], group["start_row"], len(group["rows"]))
 
-    parsing_start_row_8(input_file=input_file, start_row=1074, end_row=2060)
+    data_file = parsing_start_row_8(input_file=input_file, start_row=1074, end_row=2060)
+
+    print(data_file)
