@@ -63,28 +63,43 @@ def update_target_file(data_file, target_file, output_file=None):
     wb = load_workbook(target_file)
     ws = wb.active
 
-    data_by_name = {}
-    for _, full_name, value_l, value_m in data_file:
-        normalized_name = normalize_name(full_name)
-        if normalized_name:
-            data_by_name[normalized_name] = [value_l, value_m]
+    data_by_name = aggregate_data_by_name(data_file)
 
     updated_rows = []
+    updated_names = set()
 
     for row_num in range(1, ws.max_row + 1):
         full_name = ws.cell(row_num, 1).value
         normalized_name = normalize_name(full_name)
 
-        if normalized_name in data_by_name:
+        if normalized_name in data_by_name and normalized_name not in updated_names:
             value_l, value_m = data_by_name[normalized_name]
             ws.cell(row_num, 12).value = value_l
             ws.cell(row_num, 13).value = value_m
             updated_rows.append(row_num)
+            updated_names.add(normalized_name)
 
     save_path = output_file or target_file
     wb.save(save_path)
 
     return updated_rows
+
+
+def aggregate_data_by_name(data_file):
+    data_by_name = {}
+
+    for _, full_name, value_l, value_m in data_file:
+        normalized_name = normalize_name(full_name)
+        if not normalized_name:
+            continue
+
+        if normalized_name not in data_by_name:
+            data_by_name[normalized_name] = [0, 0]
+
+        data_by_name[normalized_name][0] += to_number(value_l)
+        data_by_name[normalized_name][1] += to_number(value_m)
+
+    return data_by_name
 
 
 def to_number(value):
@@ -110,6 +125,7 @@ def make_match_report(data_file, target_file, report_file):
         if normalized_name:
             target_names.setdefault(normalized_name, []).append(row_num)
 
+    aggregated_data = aggregate_data_by_name(data_file)
     source_names = {}
     for source_row, full_name, value_l, value_m in data_file:
         normalized_name = normalize_name(full_name)
@@ -122,6 +138,8 @@ def make_match_report(data_file, target_file, report_file):
     matched_total = 0
     missed_total = 0
     source_total = 0
+    aggregated_matched_total = 0
+    aggregated_missed_total = 0
 
     for source_row, full_name, value_l, value_m in data_file:
         amount = to_number(value_m)
@@ -133,6 +151,12 @@ def make_match_report(data_file, target_file, report_file):
         else:
             missed_total += amount
             missed.append([source_row, full_name, value_l, value_m])
+
+    for normalized_name, (_, amount) in aggregated_data.items():
+        if normalized_name in target_names:
+            aggregated_matched_total += amount
+        else:
+            aggregated_missed_total += amount
 
     duplicate_source_names = []
     for rows in source_names.values():
@@ -190,6 +214,8 @@ def make_match_report(data_file, target_file, report_file):
     ws_summary.append(["Сумма источника", source_total])
     ws_summary.append(["Сумма найденных в цели", matched_total])
     ws_summary.append(["Сумма не найденных в цели", missed_total])
+    ws_summary.append(["Сумма найденных после объединения дублей", aggregated_matched_total])
+    ws_summary.append(["Сумма не найденных после объединения дублей", aggregated_missed_total])
     ws_summary.append(["Не найдено строк источника", len(missed)])
     ws_summary.append(["ФИО с дублями в источнике", len(duplicate_source_names)])
     ws_summary.append(["ФИО с дублями в цели", len(duplicate_target_names)])
@@ -200,6 +226,8 @@ def make_match_report(data_file, target_file, report_file):
         "source_total": source_total,
         "matched_total": matched_total,
         "missed_total": missed_total,
+        "aggregated_matched_total": aggregated_matched_total,
+        "aggregated_missed_total": aggregated_missed_total,
         "missed_count": len(missed),
         "duplicate_source_count": len(duplicate_source_names),
         "duplicate_target_count": len(duplicate_target_names),
@@ -231,6 +259,14 @@ if __name__ == "__main__":
     print(f"Сумма источника: {report['source_total']:.2f}")
     print(f"Сумма найденных в цели: {report['matched_total']:.2f}")
     print(f"Сумма не найденных в цели: {report['missed_total']:.2f}")
+    print(
+        "Сумма найденных после объединения дублей: "
+        f"{report['aggregated_matched_total']:.2f}"
+    )
+    print(
+        "Сумма не найденных после объединения дублей: "
+        f"{report['aggregated_missed_total']:.2f}"
+    )
     print(f"Не найдено строк источника: {report['missed_count']}")
     print(f"Дублей ФИО в источнике: {report['duplicate_source_count']}")
     print(f"Дублей ФИО в цели: {report['duplicate_target_count']}")
