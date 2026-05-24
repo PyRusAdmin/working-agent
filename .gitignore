@@ -165,11 +165,11 @@ cython_debug/
 /input/Изм_ШР_на_01_04_2026г_.xlsx
 /input/Март_2026.xlsx
 /ШР_с_сотрудниками_апрель_2026.xlsx
-/.idea/
+.idea/
 /input/
 /ШР_с_сотрудниками.xlsx
 /Штатная расстановка.xlsx
 /output
-/.vscode
+.vscode/
 /data
 /output_departments
