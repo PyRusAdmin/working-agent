@@ -172,4 +172,4 @@ cython_debug/
 /output
 .vscode/
 /data
-/output_departments
+/output_departments!/.gigacode/
